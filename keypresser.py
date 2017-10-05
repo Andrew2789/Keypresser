@@ -6,6 +6,12 @@ from os import system, remove
 
 
 class Presser_Thread(threading.Thread):
+	mouse_keys = {
+		"l": (win32con.MOUSEEVENTF_LEFTDOWN, win32con.MOUSEEVENTF_LEFTUP),
+		"r": (win32con.MOUSEEVENTF_RIGHTDOWN, win32con.MOUSEEVENTF_RIGHTUP),
+		"m": (win32con.MOUSEEVENTF_MIDDLEDOWN, win32con.MOUSEEVENTF_MIDDLEUP)
+	}
+
 	def __init__(self, instruction_set):
 		threading.Thread.__init__(self)
 		self.instruction_set = instruction_set
@@ -16,7 +22,12 @@ class Presser_Thread(threading.Thread):
 		sleep(1)
 		while not self.quit:
 			for key, time in self.instruction_set:
-				win32api.keybd_event(key, 0, win32con.KEYEVENTF_EXTENDEDKEY, 0)
+				if type(key) == int:
+					win32api.keybd_event(key, 0, win32con.KEYEVENTF_EXTENDEDKEY, 0)
+					win32api.keybd_event(key, 0, win32con.KEYEVENTF_EXTENDEDKEY | win32con.KEYEVENTF_KEYUP, 0)
+				else:
+					for mouse_key in self.mouse_keys[key]:
+						win32api.mouse_event(mouse_key,0,0)
 				sleep(time/1000)
 				if self.quit:
 					break
@@ -39,7 +50,7 @@ def instruction_set_from_file(file_path):
 					else:
 						wait = 1000
 
-					if line[0] != "-":
+					if line[0] not in "-.":
 						code = ord(line[0])
 						#capital letter or digit needs no editing
 						if 65 <= code <= 90 or 48 <= code <= 57:
@@ -49,8 +60,12 @@ def instruction_set_from_file(file_path):
 							code -= 32
 						else:
 							raise ValueError("Invalid code")
+					elif line[0] == ".":
+						code = line[1:]
+						if not code in "lmr":
+							raise ValueError("Invalid code")
 					else:
-						code = int(line)
+						code = int(line[1:])
 						if not 0 <= code <= 254:
 							raise ValueError("Invalid code")
 
