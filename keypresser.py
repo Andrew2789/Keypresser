@@ -18,8 +18,8 @@ class Presser_Thread(threading.Thread):
 		self.quit = False
 
 	def run(self):
-		print("Starting presser.")
-		sleep(1)
+		print("Starting presser in 3 seconds.")
+		sleep(3)
 		while not self.quit:
 			for key, time in self.instruction_set:
 				if type(key) == int:
