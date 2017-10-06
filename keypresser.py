@@ -34,50 +34,58 @@ class Presser_Thread(threading.Thread):
 		print("Presser stopped.")
 
 
+def instruction_from_line(line, line_no):
+	#if there is a space, attempt to read a specified millisecond amount
+	if " " in line:
+		parts = line.split()
+		line = parts[0]
+		wait = int(parts[1])
+	else:
+		wait = 1000
+
+	if line[0] == ".":
+		code = line[1]
+		if not code in "lmr":
+			raise ValueError("Invalid mouse code %s at line %d (must be l, m, or r)." % (code, line_no))
+	elif line[0] == "-":
+		code = int(line[1:])
+		if not 1 <= code <= 254:
+			raise ValueError("Invalid key code %d at line %d (must be 1-254)." % (code, line_no))
+	else:
+		code = ord(line[0])
+		#capital letter or digit needs no editing
+		if 65 <= code <= 90 or 48 <= code <= 57:
+			pass
+		#lowercase letter needs to be decremented by 32
+		elif 97 <= code <= 122:
+			code -= 32
+		else:
+			raise ValueError("Invalid code %s at line %d (must be a-z, A-Z, or 0-9)." % (line[0], line_no))
+
+	return (code, wait)
+
+
 def instruction_set_from_file(file_path):
 	try:
 		with open(file_path, "r") as f:
 			instruction_set = []
+			line_no = 0
 			for line in f.readlines():
 				line = line.strip()
+				line_no += 1
 				#if not comment line or blank
 				if line and not line[0] == "#":
-					#if there is a space, attempt to read a specified millisecond amount
-					if " " in line:
-						parts = line.split()
-						line = parts[0]
-						wait = int(parts[1])
-					else:
-						wait = 1000
-
-					if line[0] not in "-.":
-						code = ord(line[0])
-						#capital letter or digit needs no editing
-						if 65 <= code <= 90 or 48 <= code <= 57:
-							pass
-						#lowercase letter needs to be decremented by 32
-						elif 97 <= code <= 122:
-							code -= 32
-						else:
-							raise ValueError("Invalid code")
-					elif line[0] == ".":
-						code = line[1:]
-						if not code in "lmr":
-							raise ValueError("Invalid code")
-					else:
-						code = int(line[1:])
-						if not 0 <= code <= 254:
-							raise ValueError("Invalid code")
-
-					instruction_set.append((code, wait))
+					instruction_set.append(instruction_from_line(line, line_no))
 
 		if instruction_set:
-			for line in instruction_set:
-				print(line)
+			print("Successfully read %d instructions." % len(instruction_set))
 			return instruction_set
 		else:
+			print("No instructions could be read.")
 			return None
-	except (FileNotFoundError, ValueError):
+
+	except (FileNotFoundError, ValueError) as e:
+		print(e)
 		return None
 
 
